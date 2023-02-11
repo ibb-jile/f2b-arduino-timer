@@ -11,13 +11,15 @@ int state = 0;
 unsigned long timerFinishAt = 0;
 unsigned long startAfterDelay = 0;
 
-int presetTimeSec = 60;
-int presetDelaySec = 30;
-int autostart = 1;
+byte presetTimeSec = 60;
+byte presetDelaySec = 30;
+byte autostart = 1;
 
 void setup() {
   initSerial();
+  initStorage();
   Serial.println("Welcome Stunt Timer");
+  readPresets();
   initHW();
   setupMotorControl();
   Serial.println("HW is ready");
@@ -31,7 +33,7 @@ void setup() {
   blink(20, 80);
 
   setupWifi();
-  server.on("/set", setData);
+  server.on("/set", HTTP_PUT, setData);
   server.on("/get", getData);
   server.on("/timer/start", startTimerRequest);
   server.on("/motor/stop", stopMotorRequest);
@@ -108,29 +110,17 @@ void getData() {
 }
 
 void setData() {
-  Serial.println("try to set data");
-  WiFiClient client = server.client();
-  if (!client) {
-    Serial.println("no client");
-  }
-  while (!client.available()) {
-    delay(10);
-  }
-  String body = client.readStringUntil('\n');
-  Serial.println(body);
-  /* StaticJsonDocument<500> doc;
+  String json = server.arg("plain");
+  Serial.println("JSON:"+json);
+  DynamicJsonDocument doc(1024);
+  deserializeJson(doc, json);
+  setPresetSpeed(byte(doc["preset"]["speed"]));
+  presetTimeSec = byte(doc["preset"]["timeSec"]);
+  presetDelaySec = byte(doc["preset"]["delaySec"]);
+  autostart = byte(doc["preset"]["autostart"]);
+  storePresets();
 
-  doc["preset"]["speed"] = presetSpeed;
-  doc["preset"]["timeSec"] = presetTimeSec;
-  doc["preset"]["delaySec"] = presetDelaySec;
-  doc["preset"]["autostart"] = autostart;
-  doc["current"]["speed"] = currentSpeed;
-  doc["current"]["startAt"] = startAt;
-  doc["current"]["state"] = state;
-  String output;
-  serializeJson(doc, output);*/
-
-  server.send(200, "application/json", body);
+  server.send(200, "application/json", "");
 }
 
 void handleNotFound() {
@@ -149,8 +139,8 @@ void blink(int xTimes, int interval) {
 void startTimer() {
   Serial.println("Timing start");
   unsigned long currentTime = millis();
-  startAfterDelay = currentTime + presetDelaySec * 1000;
-  timerFinishAt = startAfterDelay + currentTime + presetTimeSec * 1000;
+  startAfterDelay = currentTime + (presetDelaySec * 1000);
+  timerFinishAt = startAfterDelay + (presetTimeSec * 1000);
   state = 1;
 }
 
