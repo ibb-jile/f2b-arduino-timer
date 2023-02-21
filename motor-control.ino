@@ -37,14 +37,14 @@ void startMotor() {
 void speedUp() {
   Serial.println("Motor speed up");
   if (currentSpeed < 100) {
-    setSpeed(currentSpeed + 10);
+    setSpeed(currentSpeed + 1);
   }
 }
 
 void speedDown() {
   Serial.println("Motor speed down");
   if (currentSpeed > 0) {
-    setSpeed(currentSpeed - 10);
+    setSpeed(currentSpeed - 1);
   }
 }
 
@@ -61,8 +61,8 @@ void setMotorMax() {
 }
 
 byte countPosFromSpeed(byte speed) {
-  float step = (servoMax - servoMin) / 100;
-  return byte(servoMin + (step * speed));
+  float step = (servoMax - servoMin) / 10;
+  return byte(servoMin + ((step * speed) / 10));
 }
 
 byte countSpeedFromPos(byte pos) {
