@@ -3,17 +3,18 @@
 #include <WebServer.h>
 #include <StreamString.h>
 #include <ArduinoJson.h>
+#include "http-body.h"
 WebServer server(80);
 
-int modePin = 15;
+int modePin = 14;
 int mode = 0;
 int state = 0;
 unsigned long timerFinishAt = 0;
 unsigned long startAfterDelay = 0;
 
-byte presetTimeSec = 60;
-byte presetDelaySec = 30;
-byte autostart = 1;
+int presetTimeSec = 60;
+byte presetDelaySec = 15;
+byte autostart = 0;
 
 void setup() {
   initSerial();
@@ -22,20 +23,25 @@ void setup() {
   readPresets();
   initHW();
   setupMotorControl();
+  rpmInit();
+
   Serial.println("HW is ready");
 
-  if (digitalRead(modePin) == LOW) {
+  /*if (digitalRead(modePin) == LOW) {
     Serial.println("Setup range");
     setupRange();
-  }
+  }*/
   blink(10, 100);
   stopMotor();
   blink(20, 80);
 
   setupWifi();
+  setupGyro();
+  server.on("/", handleRoot);
   server.on("/set", HTTP_PUT, setData);
   server.on("/get", getData);
   server.on("/timer/start", startTimerRequest);
+  server.on("/timer/stop", stopTimerRequest);
   server.on("/motor/stop", stopMotorRequest);
   server.on("/motor/start", startMotorRequest);
   server.on("/speed/up", speedUpRequest);
@@ -50,8 +56,16 @@ void setup() {
     startTimer();
   }
 }
+void handleRoot() {
+  Serial.println("client connected 5");
+  server.send(200, "text/html", pageBody);
+}
 void startTimerRequest() {
   startTimer();
+  server.send(200, "application/json", "");
+}
+void stopTimerRequest() {
+  stopTimer();
   server.send(200, "application/json", "");
 }
 void stopMotorRequest() {
@@ -102,6 +116,7 @@ void getData() {
   doc["current"]["speed"] = getCurrentSpeed();
   doc["current"]["state"] = state;
   doc["current"]["finishAt"] = timerFinishAt;
+  doc["current"]["rpm"] = getRpm();
   doc["current"]["time"] = millis();
   String output;
   serializeJson(doc, output);
@@ -111,11 +126,11 @@ void getData() {
 
 void setData() {
   String json = server.arg("plain");
-  Serial.println("JSON:"+json);
+  Serial.println("JSON:" + json);
   DynamicJsonDocument doc(1024);
   deserializeJson(doc, json);
   setPresetSpeed(byte(doc["preset"]["speed"]));
-  presetTimeSec = byte(doc["preset"]["timeSec"]);
+  presetTimeSec = int(doc["preset"]["timeSec"]);
   presetDelaySec = byte(doc["preset"]["delaySec"]);
   autostart = byte(doc["preset"]["autostart"]);
   storePresets();
@@ -169,7 +184,6 @@ void checkTimer() {
 
 void loop() {
   server.handleClient();
-  delay(10);
 }
 
 void setup1() {
@@ -177,5 +191,10 @@ void setup1() {
 
 void loop1() {
   checkTimer();
+  calculateRpm();
+  if (isGyroInitiated()) {
+    String data = String(millis()) + "," + String(getGyrX()) + "," + String(getGyrY()) + "," + String(getGyrZ()) + "," + String(getGx()) + "," + String(getGy()) + "," + String(getGz()) + "," + String(getTotalG()) + "," + String(getRpm()) + "\n";
+    shareOnUdpPort(data);
+  }
   delay(10);
 }

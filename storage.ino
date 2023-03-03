@@ -1,25 +1,26 @@
 #include <EEPROM.h>
 
-int address = 0;
-byte value;
 
 void initStorage() {
   EEPROM.begin(512);
 }
 
 void storePresets() {
-  EEPROM.write(0, presetSpeed);
-  EEPROM.write(4, presetTimeSec);
-  EEPROM.write(8, presetDelaySec);
-  EEPROM.write(12, autostart);
+  EEPROM.put<byte>(0, presetSpeed);
+  
+  EEPROM.write(4, highByte(presetTimeSec ));
+  EEPROM.write(5, lowByte(presetTimeSec ));
+  EEPROM.put<int>(4, presetTimeSec);
+  EEPROM.put<byte>(8, presetDelaySec);
+  EEPROM.put<byte>(12, autostart);
   EEPROM.commit();
   Serial.println("Defaults were set");
 }
 
 void readPresets() {
-  presetSpeed = EEPROM.read(0);
-  presetTimeSec = EEPROM.read(4);
-  presetDelaySec = EEPROM.read(8);
-  autostart = EEPROM.read(12);
+  EEPROM.get<byte>(0, presetSpeed);
+  EEPROM.get<int>(4, presetTimeSec);
+  EEPROM.get<byte>(8, presetDelaySec);
+  EEPROM.get<byte>(12, autostart);
   Serial.println("Defaults were loaded");
 }
