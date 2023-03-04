@@ -15,6 +15,30 @@ unsigned long startAfterDelay = 0;
 int presetTimeSec = 60;
 byte presetDelaySec = 15;
 byte autostart = 0;
+byte allowSpeedOptimizer = 1;
+byte maxSpeedUp = 70;
+byte halfSpeedUp = 65;
+byte littleSpeedUp = 60;
+byte speedChangeStep = 2;
+byte optimalMinG = 23;
+
+void optimizeSpeed() {
+  if (allowSpeedOptimizer == 1) {
+    float gy = getGy() * 10;
+    if (gy < optimalMinG) {
+      float diffToOptimal = optimalMinG - gy;
+      if (diffToOptimal > 1) {
+        setSpeed(maxSpeedUp);
+      } else if (diffToOptimal > 0.5) {
+        setSpeed(halfSpeedUp);
+      } else {
+        setSpeed(littleSpeedUp);
+      }
+    } else {
+      setSpeed(getPresetSpeed());
+    }
+  }
+}
 
 void setup() {
   initSerial();
@@ -113,6 +137,14 @@ void getData() {
   doc["preset"]["timeSec"] = presetTimeSec;
   doc["preset"]["delaySec"] = presetDelaySec;
   doc["preset"]["autostart"] = autostart;
+
+  doc["preset"]["optimizer"]["allowSpeedOptimizer"] = allowSpeedOptimizer;
+  doc["preset"]["optimizer"]["maxSpeedUp"] = maxSpeedUp;
+  doc["preset"]["optimizer"]["halfSpeedUp"] = halfSpeedUp;
+  doc["preset"]["optimizer"]["littleSpeedUp"] = littleSpeedUp;
+  doc["preset"]["optimizer"]["speedChangeStep"] = speedChangeStep;
+  doc["preset"]["optimizer"]["optimalMinG"] = optimalMinG;
+
   doc["current"]["speed"] = getCurrentSpeed();
   doc["current"]["state"] = state;
   doc["current"]["finishAt"] = timerFinishAt;
@@ -133,6 +165,14 @@ void setData() {
   presetTimeSec = int(doc["preset"]["timeSec"]);
   presetDelaySec = byte(doc["preset"]["delaySec"]);
   autostart = byte(doc["preset"]["autostart"]);
+
+  allowSpeedOptimizer = byte(doc["preset"]["optimizer"]["allowSpeedOptimizer"]);
+  maxSpeedUp = byte(doc["preset"]["optimizer"]["maxSpeedUp"]);
+  halfSpeedUp = byte(doc["preset"]["optimizer"]["halfSpeedUp"]);
+  littleSpeedUp = byte(doc["preset"]["optimizer"]["littleSpeedUp"]);
+  speedChangeStep = byte(doc["preset"]["optimizer"]["speedChangeStep"]);
+  optimalMinG = byte(doc["preset"]["optimizer"]["optimalMinG"]);
+
   storePresets();
 
   server.send(200, "application/json", "");
@@ -176,6 +216,7 @@ void checkTimer() {
     }
   }
   if (state == 2) {
+    optimizeSpeed();
     if (currentTime >= timerFinishAt) {
       stopTimer();
     }

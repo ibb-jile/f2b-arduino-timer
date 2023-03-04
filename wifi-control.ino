@@ -1,9 +1,11 @@
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WebServer.h>
+#include <HTTPUpdateServer.h>
 #include <WiFiUdp.h>
 
 WiFiUDP Udp;
+HTTPUpdateServer httpUpdater;
 
 //const char* ssid = "HOUSENKA";
 //const char* password = "medvidekPu";
@@ -12,6 +14,7 @@ const char* password = "f2bpasswd";
 
 void startServer() {
   server.enableCORS(true);
+  httpUpdater.setup(&server);
   server.begin();
 }
 
