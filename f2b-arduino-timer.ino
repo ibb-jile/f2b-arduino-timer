@@ -1,10 +1,3 @@
-#include <WiFi.h>
-#include <WiFiClient.h>
-#include <WebServer.h>
-#include <StreamString.h>
-#include <ArduinoJson.h>
-#include "http-body.h"
-#include <SoftwareSerial.h>
 
 int modePin = 14;
 int mode = 0;

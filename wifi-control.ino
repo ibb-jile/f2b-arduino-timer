@@ -2,7 +2,10 @@
 #include <WiFiClient.h>
 #include <WebServer.h>
 #include <HTTPUpdateServer.h>
+#include <ArduinoJson.h>
 #include <WiFiUdp.h>
+#include <StreamString.h>
+#include "http-body.h"
 
 WiFiUDP Udp;
 HTTPUpdateServer httpUpdater;
@@ -55,18 +58,21 @@ void shareOnUdpPort(String data) {
 
 
 void getData() {
+  Serial.println("Asked for config");
   StaticJsonDocument<500> doc;
 
   doc["preset"]["speed"] = getPresetSpeed();
   doc["preset"]["timeSec"] = presetTimeSec;
   doc["preset"]["delaySec"] = presetDelaySec;
   doc["preset"]["autostart"] = autostart;
+
   doc["preset"]["optimizer"]["allowSpeedOptimizer"] = allowSpeedOptimizer;
   doc["preset"]["optimizer"]["maxSpeedUp"] = maxSpeedUp;
   doc["preset"]["optimizer"]["halfSpeedUp"] = halfSpeedUp;
   doc["preset"]["optimizer"]["littleSpeedUp"] = littleSpeedUp;
   doc["preset"]["optimizer"]["speedChangeStep"] = speedChangeStep;
   doc["preset"]["optimizer"]["optimalMinG"] = optimalMinG;
+
 
   doc["current"]["speed"] = getCurrentSpeed();
   doc["current"]["state"] = state;
@@ -81,22 +87,27 @@ void getData() {
 }
 
 void setData() {
+
   String json = server.arg("plain");
   Serial.println("JSON:" + json);
   DynamicJsonDocument doc(1024);
   deserializeJson(doc, json);
+
   setPresetSpeed(byte(doc["preset"]["speed"]));
   presetTimeSec = int(doc["preset"]["timeSec"]);
   presetDelaySec = byte(doc["preset"]["delaySec"]);
   autostart = byte(doc["preset"]["autostart"]);
-  allowSpeedOptimizer = byte(doc["preset"]["optimizer"]["allowSpeedOptimizer"]);
-  maxSpeedUp = byte(doc["preset"]["optimizer"]["maxSpeedUp"]);
-  halfSpeedUp = byte(doc["preset"]["optimizer"]["halfSpeedUp"]);
-  littleSpeedUp = byte(doc["preset"]["optimizer"]["littleSpeedUp"]);
-  speedChangeStep = byte(doc["preset"]["optimizer"]["speedChangeStep"]);
-  optimalMinG = byte(doc["preset"]["optimizer"]["optimalMinG"]);
-
+  if (doc["preset"].containsKey("optimizer")) {
+    allowSpeedOptimizer = byte(doc["preset"]["optimizer"]["allowSpeedOptimizer"]);
+    maxSpeedUp = byte(doc["preset"]["optimizer"]["maxSpeedUp"]);
+    halfSpeedUp = byte(doc["preset"]["optimizer"]["halfSpeedUp"]);
+    littleSpeedUp = byte(doc["preset"]["optimizer"]["littleSpeedUp"]);
+    speedChangeStep = byte(doc["preset"]["optimizer"]["speedChangeStep"]);
+    optimalMinG = byte(doc["preset"]["optimizer"]["optimalMinG"]);
+  }
+  Serial.println("json parsed");
   storePresets();
+  Serial.println("config stored");
 
   server.send(200, "application/json", "");
 }
