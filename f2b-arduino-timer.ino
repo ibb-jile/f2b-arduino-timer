@@ -15,10 +15,16 @@ unsigned long startAfterDelay = 0;
 int presetTimeSec = 60;
 byte presetDelaySec = 15;
 byte autostart = 0;
+byte allowSpeedOptimizer = 1;
+byte speedChangeStep = 1;
+byte minSpeed = 50;
+byte maxSpeed = 100;
+byte optimalG = 210;
+byte threshold = 5;
 
 void setup() {
   initSerial();
-  initStorage();
+  //initStorage();
   Serial.println("Welcome Stunt Timer");
   readPresets();
   initHW();
@@ -113,11 +119,21 @@ void getData() {
   doc["preset"]["timeSec"] = presetTimeSec;
   doc["preset"]["delaySec"] = presetDelaySec;
   doc["preset"]["autostart"] = autostart;
+
+  doc["preset"]["allowSpeedOptimizer"] = allowSpeedOptimizer;
+  doc["preset"]["speedChangeStep"] = speedChangeStep;
+  doc["preset"]["minSpeed"] = minSpeed;
+  doc["preset"]["maxSpeed"] = maxSpeed;
+  doc["preset"]["optimalG"] = optimalG;
+  doc["preset"]["threshold"] = threshold;
+
   doc["current"]["speed"] = getCurrentSpeed();
   doc["current"]["state"] = state;
   doc["current"]["finishAt"] = timerFinishAt;
   doc["current"]["rpm"] = getRpm();
   doc["current"]["time"] = millis();
+  doc["current"]["g"] = getGy();
+
   String output;
   serializeJson(doc, output);
 
@@ -133,6 +149,14 @@ void setData() {
   presetTimeSec = int(doc["preset"]["timeSec"]);
   presetDelaySec = byte(doc["preset"]["delaySec"]);
   autostart = byte(doc["preset"]["autostart"]);
+
+  allowSpeedOptimizer = byte(doc["preset"]["allowSpeedOptimizer"]);
+  speedChangeStep = byte(doc["preset"]["speedChangeStep"]);
+  minSpeed = byte(doc["preset"]["minSpeed"]);
+  maxSpeed = byte(doc["preset"]["maxSpeed"]);
+  optimalG = byte(doc["preset"]["optimalG"]);
+  threshold = byte(doc["preset"]["threshold"]);
+
   storePresets();
 
   server.send(200, "application/json", "");
@@ -176,8 +200,28 @@ void checkTimer() {
     }
   }
   if (state == 2) {
+    optimizeSpeed();
     if (currentTime >= timerFinishAt) {
       stopTimer();
+    }
+  }
+}
+
+void optimizeSpeed() {
+  if (allowSpeedOptimizer == 1) {
+    float gy = getGy() * 100;
+    float diffToOptimal = ((float)optimalG - gy);
+    byte speed = getCurrentSpeed();
+    if (diffToOptimal > threshold) {
+      speed += speedChangeStep;
+      if (speed <= maxSpeed) {
+        setSpeed(speed);
+      }
+    } else if (diffToOptimal < -threshold) {
+      speed -= speedChangeStep;
+      if (speed >= minSpeed) {
+        setSpeed(speed);
+      }
     }
   }
 }
@@ -191,10 +235,10 @@ void setup1() {
 
 void loop1() {
   checkTimer();
-  calculateRpm();
-  if (isGyroInitiated()) {
-    String data = String(millis()) + "," + String(getGyrX()) + "," + String(getGyrY()) + "," + String(getGyrZ()) + "," + String(getGx()) + "," + String(getGy()) + "," + String(getGz()) + "," + String(getTotalG()) + "," + String(getRpm()) + "\n";
-    shareOnUdpPort(data);
+  //calculateRpm();
+  if (isGyroInitiated() && state == 2) {
+    String data = String(millis()) + ";" + String(getCurrentSpeed()) + ";" + String(getGyrY()) + ";" + String(getGy()) + ";" + String(getGz()) + ";" + String(getTotalG());
+    //shareOnUdpPort(data);
   }
   delay(10);
 }

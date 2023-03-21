@@ -1,9 +1,9 @@
 #include <Servo.h>
 #include <servo.pio.h>
 
-byte servoMin = 10;
-byte servoMax = 170;
-byte presetSpeed = 90;
+int servoMin = 12400;
+int servoMax = 20000;
+byte presetSpeed = 70;
 byte currentSpeed = 0;
 Servo myservo;
 
@@ -51,21 +51,22 @@ void speedDown() {
 void setSpeed(byte speed) {
   Serial.println("Set speed: " + String(speed));
   currentSpeed = speed;
-  byte pos = countPosFromSpeed(currentSpeed);
-  Serial.println("Servo angle: " + String(pos));
-  myservo.write(pos);
+  int us = countPosFromSpeed(currentSpeed);
+  Serial.println("Servo us: " + String(us));
+  myservo.writeMicroseconds(us);
 }
 
 void setMotorMax() {
   setSpeed(100);
 }
-
-byte countPosFromSpeed(byte speed) {
-  float step = (servoMax - servoMin) / 10;
-  return byte(servoMin + ((step * speed) / 10));
+int countPosFromSpeed(byte speed) {
+  int step = 75;
+  return (servoMin + (speed*step))/10;
+  //float step = (servoMax - servoMin) / 10;
+  //return int(servoMin + ((step * speed) / 10));
 }
 
-byte countSpeedFromPos(byte pos) {
+byte countSpeedFromPos(int pos) {
   float step = (servoMax - servoMin) / 100;
   return (pos - servoMin) / step;
 }
