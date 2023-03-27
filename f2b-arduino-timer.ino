@@ -24,7 +24,7 @@ byte threshold = 5;
 
 void setup() {
   initSerial();
-  //initStorage();
+  initStorage();
   Serial.println("Welcome Stunt Timer");
   readPresets();
   initHW();
