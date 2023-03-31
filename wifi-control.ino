@@ -7,10 +7,11 @@
 HTTPUpdateServer httpUpdater;
 WiFiUDP Udp;
 
-//const char* ssid = "HOUSENKA";
-//const char* password = "medvidekPu";
-const char* ssid = "F2B";
-const char* password = "f2bpasswd";
+const char* ssid = "HOUSENKA";
+const char* password = "medvidekPu";
+const char* ssidAP = "F2B";
+const char* passwordAP = "f2bpasswd";
+const int udpPort = 8888;
 
 void startServer() {
   server.enableCORS(true);
@@ -20,19 +21,12 @@ void startServer() {
 
 void setupWifi() {
   delay(10000);
-  Serial.println("Configuring access point...");
-  while(!WiFi.softAP(ssid, password)) {
-    Serial.print(".");
-  }
+  Serial.println("Connecting to WiFi network: " + String(ssid));
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
 
-  IPAddress myIP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(myIP);
-
-  //WiFi.mode(WIFI_STA);
-  //WiFi.begin(ssid, password);
-
-  /*while (WiFi.status() != WL_CONNECTED) {
+  byte counter = 0;
+  while (WiFi.status() != WL_CONNECTED && counter < 20) {
     if (WiFi.status() == WL_CONNECT_FAILED) {
       Serial.println("Connection failed");
       WiFi.begin(ssid, password);
@@ -40,14 +34,27 @@ void setupWifi() {
     delay(500);
     Serial.print(".");
     delay(500);
+    counter++;
   }
 
-  Serial.println("");
-  Serial.print("Pico W is connected to WiFi network ");
-  Serial.println(WiFi.SSID());
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Cannot connect to " + String(ssid));
+    Serial.println("Configuring access point... SSID: " + String(ssidAP) + ", Password: " + String(passwordAP));
+    while (!WiFi.softAP(ssidAP, passwordAP)) {
+      Serial.print(".");
+    }
 
-  Serial.print("Assigned IP Address: ");
-  Serial.println(WiFi.localIP());*/
+    IPAddress myIP = WiFi.softAPIP();
+    Serial.print("AP IP address: ");
+    Serial.println(myIP);
+  } else {
+    Serial.println("");
+    Serial.print("Pico W is connected to WiFi network ");
+    Serial.println(WiFi.SSID());
+
+    Serial.print("Assigned IP Address: ");
+    Serial.println(WiFi.localIP());
+  }
 }
 
 void shareOnUdpPort(String data) {
@@ -57,7 +64,7 @@ void shareOnUdpPort(String data) {
   // Copy it over
   data.toCharArray(char_array, str_len);
   IPAddress ip;
-  ip.fromString("192.168.42.17");
+  ip.fromString("192.168.0.255");
   Udp.beginPacketMulticast(ip, 8888, WiFi.localIP());
   Udp.write(char_array);
   Udp.endPacket();

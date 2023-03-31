@@ -45,6 +45,10 @@ void setup() {
   setupGyro();
   server.on("/", handleRoot);
   server.on("/set", HTTP_PUT, setData);
+  server.on("/set", HTTP_OPTIONS, []() {
+    //  server.sendHeader("Access-Control-Allow-Origin","*");
+    server.send(204);
+  });
   server.on("/get", getData);
   server.on("/timer/start", startTimerRequest);
   server.on("/timer/stop", stopTimerRequest);
@@ -113,6 +117,10 @@ void setupRange() {
 }
 
 void getData() {
+  server.send(200, "application/json", prepareJson());
+}
+
+String prepareJson() {
   StaticJsonDocument<500> doc;
 
   doc["preset"]["speed"] = getPresetSpeed();
@@ -132,12 +140,11 @@ void getData() {
   doc["current"]["finishAt"] = timerFinishAt;
   doc["current"]["rpm"] = getRpm();
   doc["current"]["time"] = millis();
-  doc["current"]["g"] = getGy();
+  doc["current"]["g"] = String(getGy());
 
   String output;
   serializeJson(doc, output);
-
-  server.send(200, "application/json", output);
+  return output;
 }
 
 void setData() {
@@ -236,9 +243,5 @@ void setup1() {
 void loop1() {
   checkTimer();
   //calculateRpm();
-  if (isGyroInitiated() && state == 2) {
-    String data = String(millis()) + ";" + String(getCurrentSpeed()) + ";" + String(getGyrY()) + ";" + String(getGy()) + ";" + String(getGz()) + ";" + String(getTotalG());
-    //shareOnUdpPort(data);
-  }
   delay(10);
 }
