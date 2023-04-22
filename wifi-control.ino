@@ -26,7 +26,7 @@ void setupWifi() {
   WiFi.begin(ssid, password);
 
   byte counter = 0;
-  while (WiFi.status() != WL_CONNECTED && counter < 20) {
+  /*while (WiFi.status() != WL_CONNECTED && counter < 20) {
     if (WiFi.status() == WL_CONNECT_FAILED) {
       Serial.println("Connection failed");
       WiFi.begin(ssid, password);
@@ -35,7 +35,7 @@ void setupWifi() {
     Serial.print(".");
     delay(500);
     counter++;
-  }
+  }*/
 
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("Cannot connect to " + String(ssid));
@@ -64,7 +64,7 @@ void shareOnUdpPort(String data) {
   // Copy it over
   data.toCharArray(char_array, str_len);
   IPAddress ip;
-  ip.fromString("192.168.0.255");
+  ip.fromString("<192.168.42.255");
   Udp.beginPacketMulticast(ip, 8888, WiFi.localIP());
   Udp.write(char_array);
   Udp.endPacket();
